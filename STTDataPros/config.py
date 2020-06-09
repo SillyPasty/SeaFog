@@ -1,0 +1,13 @@
+
+INPUT_FOLDER_PATH = r'data\seaTem\SST'
+
+RESULT_FOLDER_PATH = r'data\output'
+
+SIZE = 1080
+
+SPACE_RESOLUTION = 0.025
+
+REAL_IMG_PATH = r'data\img\202005010000_tc.png'
+
+K_ZERO = 273.16
+K_MAX = 9999.0

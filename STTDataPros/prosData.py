@@ -45,7 +45,7 @@ def get_target_data(sTT_file, target_lon_s, target_lat_s):
                         .format(data_lon_s, data_lat_s, data_lon_e, data_lat_e))
 
     sTT_data = sTT_file.get_stt_data()
-    area_data = sTT_data[target_lat_grid_s:target_lat_grid_e, target_lon_grid_s+1:target_lon_grid_e+1]
+    area_data = sTT_data[target_lat_grid_s:target_lat_grid_e, target_lon_grid_s:target_lon_grid_e]
     return area_data
 
 

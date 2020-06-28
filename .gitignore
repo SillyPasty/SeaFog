@@ -1,14 +1,25 @@
-**/__pycache__/*
-**/.vscode/*
+__pycache__/
 **/data/*
-**/.vs/*
+.vs/
+.vscode/
 
 /NightPros/hisd2png/build/CMakeFiles/*
 /NightPros/hisd2png/build/out.dir/*
 /NightPros/hisd2png/build/.vs/*
 /NightPros/hisd2png/build/*.*
 
+/NightSLTD/hisd2png/build/CMakeFiles
+/NightSLTD/hisd2png/build/out.dir/*
+/NightSLTD/hisd2png/build/.vs/*
+/NightSLTD/hisd2png/build/*.*
+
+result_data/
+data/
+
 /seafogFin/*
+/*.zip
+
 进度/*
 文档/*
 论文/*
+数据/*

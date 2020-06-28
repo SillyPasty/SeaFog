@@ -25,7 +25,7 @@ def filter_hisd(dst_dir, local_dir, clock):
     local_slice_list = [[None for i in range(slice_num)] for row in range(2)]
     row_index = 0
     for fn in os.listdir(dst_dir):
-        if cfg.TARGET_CHANNEL.count(fn[21:24]) > 0:
+        if cfg.TARGET_CHANNEL.count(fn[21:24]) > 0 and fn[16:20] == clock:
             if fn.find("S0210") != -1:
                 slice_list[row_index][0] = osp.join(dst_dir, fn)
                 local_fn = fn.strip(".bz2")

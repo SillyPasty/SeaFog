@@ -1,8 +1,7 @@
 import os
 import os.path as osp
 from matplotlib import pyplot as plt
-from pyhdf.SD import SD
-from file_data_cnt import count_l_w_mask, count_single_shot
+from calipso_file import CalipsoFile
 
 
 EXAMPLE_FILENAME = r"CAL_LID_L2_VFM-Standard-V4-20.2018-05-14T04-46-55ZD_Subset.hdf"
@@ -31,42 +30,18 @@ def count_valid_file(threshold, clock_cnt):
     water_data_cnt = 0
     for fn in os.listdir(FILE_FOLDER):
         if fn[-4:] == '.hdf':
+            print('\r' + fn, end='')
             total_cnt += 1
-            min_dif = get_min_dif_minute(fn)
-            if min_dif < threshold:
-                hour, minute = get_seperate_clocks(fn)
-                shift = 0
-                if minute < 15: shift = 0
-                elif minute > 45: shift = 2
-                else: shift = 1
-                hour = (hour + 8) % 24
-                clock_cnt[(2 * hour + shift) % 48] += 1
+            calipso_file = CalipsoFile(FILE_FOLDER, fn)
+            clock_cnt, count_dir = calipso_file.count_valid_ss(threshold, clock_cnt)
+            if count_dir['total'] != 0:
                 cnt += 1
-
-                hdf_file = SD(osp.join(FILE_FOLDER, fn))
-                total_data_cnt += count_single_shot(hdf_file)
-                l_d_c, w_d_c = count_l_w_mask(hdf_file)
-                land_data_cnt += l_d_c
-                water_data_cnt += w_d_c
+                total_data_cnt += count_dir['total']
+                land_data_cnt += count_dir['land']
+                water_data_cnt += count_dir['water']
 
     return clock_cnt, cnt, total_cnt, land_data_cnt, water_data_cnt, total_data_cnt
 
-def get_seperate_clocks(filename):
-    datetime_str = filename[30:49]
-    time_str = datetime_str[11:20]
-    hour_str = time_str[0:2]
-    min_str = time_str[3:5]
-    hour = int(hour_str)
-    minute = int(min_str)
-    return hour, minute
-    
-def get_min_dif_minute(filename):
-    _, minute = get_seperate_clocks(filename)
-    dif1 = abs(minute - 0)
-    dif2 = abs(minute - 30)
-    dif3 = abs(minute - 60)
-    min_dif = min(dif1, dif2, dif3)
-    return min_dif
 
 clock_cnt = [0 for x in range(48)]
 clock_cnt, cnt, total_cnt, land_data_cnt, water_data_cnt, total_data_cnt = count_valid_file(3, clock_cnt)

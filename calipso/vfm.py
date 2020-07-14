@@ -37,7 +37,7 @@ class VFM():
             cv2.imwrite(img_name + 'png', img)
             print('File write to ' + img_name + 'png')
 
-    def get_fog_mask(self ,ratio, height = 500):
+    def get_fog_mask(self ,ratio, height):
         """
             Vertical feature mask array:
 
@@ -52,7 +52,7 @@ class VFM():
         """
         y_axis, x_axis = self.vfm.shape
         seafog_mask = np.zeros((x_axis, 1), dtype=np.int)
-        valid_mask = [2, 3]
+        valid_mask = [2]
         invalid_mask = [0, 5, 6, 7]
 
         for x in range(x_axis):
@@ -61,7 +61,7 @@ class VFM():
             y = y_axis - 1
             while True:
                 if y < VfmCfg.MAXIMUM_CELL:
-                    y = 0
+                    y = -1
                     break
                 cell_data = self.vfm[y, x]
                 if invalid_mask.count(cell_data) == 0:
@@ -78,8 +78,8 @@ class VFM():
                     fog_count += 1
             if total_count != 0 and (fog_count / total_count) >= ratio:
                 seafog_mask[x] = 1
-            if total_count == 0:
-                seafog_mask[x] = 2
+            # if total_count == 0:
+            #     seafog_mask[x] = 0
         
         return seafog_mask
 

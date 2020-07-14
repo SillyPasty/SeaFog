@@ -33,6 +33,11 @@ class CalipsoFile():
                 img[lat_cell, lon_cell, 2] = 255
         return img
 
+    def get_lon_lat(self):
+        ss_lat = self.hdf_file.select('ssLatitude').get()
+        ss_lon = self.hdf_file.select('ssLongitude').get()
+        return ss_lon, ss_lat
+
     def count_valid_ss(self, threshold, clock_count):
         result_dic = {'total': 0, 'land': 0, 'water': 0}
 
@@ -45,7 +50,7 @@ class CalipsoFile():
             hour = (hour + 8) % 24
             clock_count[(2 * hour + shift) % 48] += 1
 
-            lw_mask = self.hdf_file.select('Land_Water_Mask').get()
+            lw_mask = self.hdf_file.select('ssLand_Water_Mask').get()
             land_mask = [1, 2]
             water_mask = [0, 3, 4, 5, 6, 7]
             for ss in lw_mask:
@@ -74,11 +79,22 @@ class CalipsoFile():
         return hour, minute
 
     def get_time(self):
-        datas = self.hdf_file.select('Profile_UTC_Time').get()
+        datas = self.hdf_file.select('ssProfile_UTC_Time').get()
         return datas
 
-    def get_vfm_fog_mask(self, ratio):
-        return self.vfm.get_fog_mask(ratio)
+    def get_land_water_mask(self):
+        # land_mask = [1, 2]
+        # ocean_mask = [0, 6, 7]
+        lw = self.hdf_file.select('ssLand_Water_Mask').get()
+        ma = np.bitwise_or(lw >= 6, lw == 0)
+
+        land_water_mask = np.zeros((lw.shape), dtype=np.int)
+        land_water_mask += ma * 1
+
+        return land_water_mask
+
+    def get_vfm_fog_mask(self, ratio, height = 500):
+        return self.vfm.get_fog_mask(ratio, height)
     
     def plot_vfm(self, result_path, show=False):
         self.vfm.plot(result_path, show)

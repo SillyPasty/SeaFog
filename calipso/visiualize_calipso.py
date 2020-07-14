@@ -1,3 +1,5 @@
+# visiualize calipso vfm data
+
 import numpy as np
 import cv2
 import os

@@ -83,7 +83,7 @@ class CalipsoFile():
         return datas
 
     def get_land_water_mask(self):
-        # land_mask = [1, 2]
+        # 
         # ocean_mask = [0, 6, 7]
         lw = self.hdf_file.select('ssLand_Water_Mask').get()
         ma = np.bitwise_or(lw >= 6, lw == 0)

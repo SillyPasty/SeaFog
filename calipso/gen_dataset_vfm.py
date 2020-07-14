@@ -1,3 +1,4 @@
+# Generate calipso dataset
 import numpy as np
 from calipso_file import CalipsoFile
 import datetime

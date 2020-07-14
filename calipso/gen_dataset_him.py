@@ -1,3 +1,7 @@
+# used on the server
+# Generate datasets from vfm datasets
+# Him + Calipso
+
 import csv
 import os
 import datetime
@@ -122,7 +126,7 @@ def main():
         print('Processing ', vfm_fn)
         gen_him_vfm_dataset(vfm_fn, vfm_him_fn, path_dic, stat)
 
-    print('Time cost: ', str(start_time - time.time()))
+    print('Time cost: ', str(time.time() - start_time))
     print('Total: {total}, Success: {success}, Failed: {failed}'.format(**stat))
 
 main()

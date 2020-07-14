@@ -1,3 +1,4 @@
+# Count valid file, ocean, land, fog single point.
 import os
 import os.path as osp
 from matplotlib import pyplot as plt

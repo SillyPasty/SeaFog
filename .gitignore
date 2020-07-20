@@ -19,6 +19,8 @@ data/
 /seafogFin/*
 /*.zip
 
+/*.npz
+
 进度/*
 文档/*
 论文/*

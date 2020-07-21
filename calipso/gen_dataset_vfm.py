@@ -7,7 +7,7 @@ import csv
 import os
 from cfg import GenCfg
 
-EXAMPLE_FOLDER = r"calipso\data\2018"
+EXAMPLE_FOLDER = r"calipso\data\2019"
 
 def gen_dataset(file_dir, file_name, csv_writer):
     result_dic = {}

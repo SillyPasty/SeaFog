@@ -2,7 +2,22 @@ import csv
 import numpy as np
 import os
 import time
+from datetime import datetime
+from pysolar import solar
+from pytz import timezone
 
+def get_X_tmp(row):
+    him_headers = ['B' + '{:0>2d}'.format(i) for i in range(1, 17)]
+    x_tmp = []
+
+    for c_headers in him_headers:
+        x_tmp += [int(row[c_headers])]
+
+    dt = datetime.strptime(row['him_time'], '%Y-%m-%d %H:%M:%S').replace(tzinfo = timezone('UTC'))
+    solar_angle = solar.get_altitude(float(row['lat']), float(row['lon']), dt)
+    x_tmp += solar_angle
+    x_tmp += dt.timestamp()
+    return x_tmp
 
 def get_dataset(file_path):
     x = []
@@ -21,10 +36,8 @@ def get_dataset(file_path):
                 if i == 0:
                     continue
                 y.append([int(row['fog_mask'])]) 
-                x_tmp = []
-                for c_headers in him_headers:
-                    x_tmp += [int(row[c_headers])]
-                x.append(x_tmp)
+                x_single = get_X_tmp(row)
+                x.append(x_single)
 
     x = np.array(x)
     y = np.array(y)
@@ -51,12 +64,11 @@ def get_filtered_dataset(file_path):
                 if i == 0:
                     continue
 
-                x_tmp = []
-                for c_headers in him_headers:
-                    x_tmp += [int(row[c_headers])]
-                
+                x_single = get_X_tmp(row)
+                x.append(x_tmp)
+
                 tag = ''
-                
+
                 if row['land_water_mask'] == '1' and row['B04'] == '0':
                     # sea night
                     tag = 'sea_n'
@@ -88,7 +100,7 @@ def sampling(x, y):
     new_y = []
     for zz in z:
         if neg_count < pos_total or zz[-1] == 1:
-            new_x.append(zz[:16])
+            new_x.append(zz[:-1])
             new_y.append([zz[-1]])
             if zz[-1] == 0:
                 neg_count += 1

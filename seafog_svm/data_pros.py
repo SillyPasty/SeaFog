@@ -15,8 +15,8 @@ def get_X_tmp(row):
 
     dt = datetime.strptime(row['him_time'], '%Y-%m-%d %H:%M:%S').replace(tzinfo = timezone('UTC'))
     solar_angle = solar.get_altitude(float(row['lat']), float(row['lon']), dt)
-    x_tmp += solar_angle
-    x_tmp += dt.timestamp()
+    x_tmp += [solar_angle]
+    x_tmp += [dt.timestamp()]
     return x_tmp
 
 def get_dataset(file_path):
@@ -26,6 +26,7 @@ def get_dataset(file_path):
     for fn in os.listdir(file_path):
         file_name = os.path.join(file_path, fn)
         with open(file_name, 'r') as vfm_him_f:
+            print('\r' + file_name, end='')
             vfm_headers = ['lon', 'lat', 'real_time', 'him_time', 'fog_mask', 'land_water_mask']
             him_headers = ['B' + '{:0>2d}'.format(i) for i in range(1, 17)]
             headers = vfm_headers + him_headers
@@ -43,7 +44,7 @@ def get_dataset(file_path):
     y = np.array(y)
     return x, y
 
-def get_filtered_dataset(file_path):
+def get_filtered_dataset(file_path, lat1=45, lon1=105, lat2=18, lon2=150):
     dataset = {
         'sea_d':{'x':[], 'y':[]},
         'sea_n':{'x':[], 'y':[]},
@@ -63,9 +64,10 @@ def get_filtered_dataset(file_path):
             for i, row in enumerate(reader):
                 if i == 0:
                     continue
-
+                lat, lon = float(row['lat']), float(row['lon'])
+                if lat > lat1 or lat < lat2 or lon > lon2 or lon < lon1:
+                    continue
                 x_single = get_X_tmp(row)
-                x.append(x_tmp)
 
                 tag = ''
 
@@ -83,7 +85,7 @@ def get_filtered_dataset(file_path):
                     tag = 'land_d'
 
                 dataset[tag]['y'].append([int(row['fog_mask'])])
-                dataset[tag]['x'].append(x_tmp)
+                dataset[tag]['x'].append(x_single)
 
     for k in dataset:
         dataset[k]['x'] = np.array(dataset[k]['x'])

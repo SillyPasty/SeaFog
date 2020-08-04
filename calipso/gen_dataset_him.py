@@ -104,11 +104,13 @@ def gen_him_vfm_dataset(vfm_fn, vfm_him_fn, path_dic, stat):
                         row[channel_str] = -1
                         success_flg = False
                     else:
-                        x, y = get_axis(lat, lon)
-                        val = ch_data[x, y]
-                        if i > 6: val += 200
-                        row[channel_str] = val
-
+                        try:
+                            x, y = get_axis(lat, lon)
+                            val = ch_data[x, y]
+                            if i > 6: val += 200
+                            row[channel_str] = val
+                        except Exception as e:
+                            print(e)
                 cw.writerow(row)
 
                 if success_flg: stat['success'] += 1

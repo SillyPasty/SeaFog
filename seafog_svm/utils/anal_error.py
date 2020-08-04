@@ -19,8 +19,8 @@ def anal_error_data(test_X, predicted_Y, test_Y):
             clock_cnt[dt.month - 1][(2 * hour + shift) % 48] += 1
     return clock_cnt
 
-def save_error(clock_cnt, title, tag):
-    analysis_path = os.path.join('seafog_svm', 'data', 'output', title + '.xlsx')
+def save_error(clock_cnt, file_path, tag):
+    analysis_path = file_path + '.xlsx'
     wb = load_workbook(analysis_path)
     wb.create_sheet(tag)
     sheet = wb.get_sheet_by_name(tag)
@@ -28,6 +28,6 @@ def save_error(clock_cnt, title, tag):
         sheet.append(i)
     wb.save(analysis_path)
 
-def get_error_anal(test_X, predicted_Y, test_Y, title, tag):
+def get_error_anal(test_X, predicted_Y, test_Y, file_path, tag):
     clock_cnt = anal_error_data(test_X, predicted_Y, test_Y)
-    save_error(clock_cnt, title, tag)
+    save_error(clock_cnt, file_path, tag)

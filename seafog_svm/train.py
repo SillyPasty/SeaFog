@@ -1,180 +1,114 @@
-from data_pros import get_dataset, sampling, get_filtered_dataset
-from anal_error import get_error_anal
-
-from sklearn.svm import SVC, LinearSVC
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, confusion_matrix, classification_report
-from sklearn.preprocessing import StandardScaler
-from sklearn.externals import joblib
-from plot_learning_curve import plot_learning_curve
+import os
+import sys
 import numpy as np
 import time
-import os
-from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
+from dataset import Dataset
+from utils.anal_error import get_error_anal
+from utils.get_params import get_params
 
-def gen_dataset(latlon_range, lat1=45, lon1=105, lat2=18, lon2=150):
-    FILE_PATH = r'calipso\result_data\him_dataset'
-    print('Processing data...')
-    dataset = get_filtered_dataset(FILE_PATH, lat1, lon1, lat2, lon2)
-    tags = ['sea_d', 'sea_n', 'land_d', 'land_n']
-    for tag in tags:
-        np.savez(r'seafog_svm\data\dataset_' + tag + '_' +
-                 latlon_range, x=dataset[tag]['x'], y=dataset[tag]['y'])
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.preprocessing import StandardScaler
+import joblib
 
+MAIN_PATH = ''
+MODEL_PATH = os.path.join(MAIN_PATH, 'model')
+DATA_PATH = os.path.join(MAIN_PATH, 'data')
+OUTPUT_PATH = os.path.join(MAIN_PATH, 'output')
 
-def train(area, C, gamma, sea, land, day, night, plot=True, test=False):
-    latlon_range = ''
-    if area != 'all':
-        lat1, lon1 = 41, 117.5
-        lat2, lon2 = 34, 127
-        latlon_range = '_{}_{}_{}_{}'.format(lat1, lon1, lat2, lon2)
-        # gen_dataset(latlon_range, lat1, lon1, lat2, lon2)
-    else:
-        latlon_range = ''
-        # gen_dataset(latlon_range)
+def get_name_tag(range_dic, sldn_dic):
+    tag_name = ''
+    if sldn_dic['sea']:
+        tag_name += '_sea'
+    if sldn_dic['land']:
+        tag_name += '_land'
+    if sldn_dic['night']:
+        tag_name += '_d'
+    if sldn_dic['day']:
+        tag_name += '_n'
+    latlon_range = '_{}_{}_{}_{}'.format(range_dic['lat1'], range_dic['lon1'], range_dic['lat2'], range_dic['lon2'])
+    tag_name += latlon_range
+    return tag_name
 
-    print('Reading data...')
-    dataset = {}
-    tags = ['_sea_d', '_sea_n', '_land_d', '_land_n']
-    for tag in tags:
-        dataset_path = os.path.join(
-            'seafog_svm', 'data', 'dataset' + tag + latlon_range)
-        dataset[tag] = np.load(dataset_path + '.npz')
-
-    X = None
-    Y = None
-
-    if sea and day:
-        tmp_x, tmp_y = dataset['_sea_d']['x'], dataset['_sea_d']['y']
-        X = tmp_x if X is None else np.concatenate((X, tmp_x), axis=0)
-        Y = tmp_y if Y is None else np.concatenate((Y, tmp_y), axis=0)
-    if sea and night:
-        tmp_x, tmp_y = dataset['_sea_n']['x'], dataset['_sea_n']['y']
-        X = tmp_x if X is None else np.concatenate((X, tmp_x), axis=0)
-        Y = tmp_y if Y is None else np.concatenate((Y, tmp_y), axis=0)
-    if land and day:
-        tmp_x, tmp_y = dataset['_land_d']['x'], dataset['_land_d']['y']
-        X = tmp_x if X is None else np.concatenate((X, tmp_x), axis=0)
-        Y = tmp_y if Y is None else np.concatenate((Y, tmp_y), axis=0)
-    if land and night:
-        tmp_x, tmp_y = dataset['_land_n']['x'], dataset['_land_n']['y']
-        X = tmp_x if X is None else np.concatenate((X, tmp_x), axis=0)
-        Y = tmp_y if Y is None else np.concatenate((Y, tmp_y), axis=0)
-
-    X, Y = sampling(X, Y)
-
+def train(data_path, range_dic, sldn_dic):
+    # Get dataset
+    dataset = Dataset(data_path, range_dic)
+    X, Y = dataset.get_dataset(sldn_dic)
+    X, Y = dataset.pn_sampling(X, Y, ratio=1)
     Y = Y.ravel()
-    # print('Datashape after sampling:', X.shape, Y.shape)
+    dataset.analysis(X, Y)
 
-    # Split the dataset
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, Y, test_size=0.2, random_state=0)
-
-    # Normalization
+    # Split and normalization
+    X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=0)
+    # X_test, X_valid, y_test, y_valid = train_test_split(X_test, y_test, test_size=0.33, random_state=0)
+    
     scaler = StandardScaler()
     scaler.fit(X_train[:, :-1])
     X_train_trans = scaler.transform(X_train[:, :-1])
 
     scaler.fit(X_test[:, :-1])
     X_test_trans = scaler.transform(X_test[:, :-1])
+    # Init model
+    model = SVC(kernel='rbf', probability=True)
+    # Grid search  
+    best_parameters = grid_s(model, X_train, y_train)
+    # Train   
+    model = SVC(kernel='rbf', C=best_parameters['C'], gamma=best_parameters['gamma'], probability=True)    
+    model.fit(X_train, y_train)
 
-    tag_name = ''
-    if sea:
-        tag_name += '_sea'
-    if land:
-        tag_name += '_land'
-    if day:
-        tag_name += '_d'
-    if night:
-        tag_name += '_n'
-    title = "Seafog" + tag_name
-    model_path = os.path.join('seafog_svm', 'data',
-                              'output', 'dataset' + tag_name + latlon_range)
+    tag = get_name_tag(range_dic, sldn_dic)
+    model_path = os.path.join(MODEL_PATH, 'seafog' + tag)
+    joblib.dump(model, model_path + '.pkl')
+    print('Model save to:' + model_path + '.pkl')
 
-    if test:
-        # Init model
-        svc = SVC(C=C, gamma=gamma, verbose=True,
-                  tol=1e-9, class_weight='balanced')
+    test(model_path, X_test, y_test, tag)
 
-        tag_name = ''
-        if sea:
-            tag_name += '_sea'
-        if land:
-            tag_name += '_land'
-        if day:
-            tag_name += '_d'
-        if night:
-            tag_name += '_n'
-        title = "Seafog" + tag_name
+    return model
 
-        if not plot:
-            # Train
-            print('Training...')
-            svc.fit(X_train_trans, y_train)
-            # save model
-            joblib.dump(svc, model_path + '.pkl')
-        else:
-            # Plot the train result
-            print('Plotting...')
-            plt = plot_learning_curve(svc, title, X_train_trans, y_train)
-            plt.savefig('1.jpg')
-            plt.show()
-
-    if test:
-        # Predic on test set
-        print(np.sum(y_test))
-        print(y_test.shape)
-        print('Testing...')
-        svc = joblib.load(model_path + '.pkl')
-        y_pred = svc.predict(X_test_trans)
-
-        # result
-        # print(mean_squared_error(y_test, y_pred))
-        print('Analyzing...')
-        # get_error_anal(X_test, y_pred, y_test, 'error', tag_name)
-        print(classification_report(y_test, y_pred))
-        mat = confusion_matrix(y_test, y_pred)
-        print(mat)
-        tn, fp, fn, tp = mat.ravel()
-        p = tp / (tp+fp)
-        r = tp / (tp+fn)
-        f1 = (2*p*r) / (p+r)
-    return f1
-
-
-def predict():
-    clf = joblib.load('seafog_svm\data\output\dataset.pkl')
-
-
-def grid_search():
-    gamma = np.arange(1, 10, .5)
-    C = np.arange(1, 10, 0.5)
-    data = [[0 for i in range(len(gamma) * len(C))] for j in range(3)]
-    for i, gam in enumerate(gamma):
-        for j, c in enumerate(C):
-            result = train(area='al', gamma=gam, C=c, sea=True, land=False, day=True, night=True, test=True, plot=False)
-            # result = i * 6 + j
-            data[0][i*len(gamma)+j] = gam
-            data[1][i*len(gamma)+j] = c
-            data[2][i*len(gamma)+j] = result
-
-    # 绘制散点图
-    fig = plt.figure()
-    ax = Axes3D(fig)
-    ax.scatter(data[0], data[1], data[2])    
+def grid_s(model, X_train, y_train):
+    param_grid = {'C': [1e-3, 1e-2, 1e-1, 1, 10, 100, 1000], 'gamma': [1e-3, 1e-2, 1e-1, 0.5, 1]}
+    grid_search = GridSearchCV(model, param_grid, n_jobs = 8, verbose=True)    
+    grid_search.fit(X_train, y_train)    
+    best_parameters = grid_search.best_estimator_.get_params()
     
-    # 添加坐标轴(顺序是Z, Y, X)
-    ax.set_zlabel('f1', fontdict={'size': 15, 'color': 'red'})
-    ax.set_ylabel('c', fontdict={'size': 15, 'color': 'red'})
-    ax.set_xlabel('gamma', fontdict={'size': 15, 'color': 'red'})
-    plt.show()
+    for para, val in list(best_parameters.items()):    
+        print(para, val)
+    return best_parameters
 
+def test(model_path, X, y ,tag):
+    model = joblib.load(model_path + '.pkl')
+    y_pred = model.predict(X)
+    print(classification_report(y, y_pred))
+    mat = confusion_matrix(y, y_pred)
+    print(mat)
+    tn, fp, fn, tp = mat.ravel()
+    p = tp / (tp+fp)
+    r = tp / (tp+fn)
+    f1 = (2*p*r) / (p+r)
+    print('Recall: {}, Precision: {}, F1 score: {}.'.format(r, p, f1))
 
+    error_path = os.path.join(OUTPUT_PATH, 'error')
+    get_error_anal(X, y_pred, y, error_path, tag)
 
-start_time = time.time()
-train(area='all', gamma=5, C=8.5, sea=True, land=False, day=True, night=True, test=True, plot=False)
-# predict()
-# grid_search()
-print('Total time:' + str(time.time() - start_time))
+def main():
+    params_fp = os.path.join(MAIN_PATH, 'parameters.csv')
+    range_list, sldn_list = get_params(params_fp)
+    time_start = time.time()
+    time_mid = time.time()
+    for range_dic, sldn_dic in zip(range_list, sldn_list):
+        model = train(DATA_PATH, range_dic, sldn_dic)
+        print('For model:')
+        print(range_dic, sldn_dic)
+        print('Time cost:' + str(time.time() - time_mid))
+        time_mid = time_mid
+        print('-------------------------\n')
+    time_end = time.time()
+    print('Total_time:' + str(time_end - time_start))
+
+saved_std_out = sys.stdout
+with open(os.path.join(OUTPUT_PATH, 'out.txt'), 'w+') as f:
+    sys.stdout = f  #标准输出重定向至文件
+    main()
+sys.stdout = saved_std_out

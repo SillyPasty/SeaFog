@@ -9,8 +9,12 @@ from pytz import timezone
 
 class Dataset():
 
-    def __init__(self, data_path, range_dic):
+    def __init__(self, data_path, range_dic, prefix):
+        # B01~B03 visible
+        # B04~B06 near infrared
+        # B06~B16 infrared
         self.data_path = data_path
+        self.prefix = prefix
         self.csv_path, self.np_path = self.__init_data_path()
         self.lat1, self.lat2 = range_dic['lat1'], range_dic['lat2']
         self.lon1, self.lon2 = range_dic['lon1'], range_dic['lon2']
@@ -64,15 +68,14 @@ class Dataset():
         sample_total = Y.shape[0]
         pos_total = np.sum(Y)
         neg_total = sample_total - pos_total
-        feature = X.shape[1]
-        print('Total samples: {}\n Positive samples: {}, Negative samples: {}\n Features: {}'.format(sample_total, pos_total, neg_total, feature))
+        print('Total samples: {}\n Positive samples: {}, Negative samples: {}'.format(sample_total, pos_total, neg_total))
 
     
     def __get_ds_name_list(self):
         latlon_range = '_{}_{}_{}_{}'.format(self.lat1, self.lon1, self.lat2, self.lon2)
         ds_n_list = []
         for tag in self.tags:
-            dataset_path = os.path.join(self.np_path, 'np' + tag + latlon_range)
+            dataset_path = os.path.join(self.np_path, self.prefix + 'np' + tag + latlon_range)
             ds_n_list.append(dataset_path)
         return ds_n_list
 
@@ -104,6 +107,7 @@ class Dataset():
             solar_angle = solar.get_altitude(float(row['lat']), float(row['lon']), dt)
             x_tmp += [solar_angle]
             x_tmp += [dt.timestamp()]
+            x_tmp += [int(row['land_water_mask'])]
             return x_tmp
 
         for fn in os.listdir(self.csv_path):

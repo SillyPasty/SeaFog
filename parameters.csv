@@ -1,0 +1,2 @@
+lat1,lon1,lat2,lon2,day,night,sea,land,model_path,total_samples,svm_c,svm_gamma
+45,105,18,150,1,0,1,0,,,,

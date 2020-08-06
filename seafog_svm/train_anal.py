@@ -1,6 +1,5 @@
 import os
 import sys
-import platform
 import numpy as np
 import time
 
@@ -14,12 +13,10 @@ from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.preprocessing import StandardScaler
 import joblib
 
-
-MAIN_PATH = 'seafog_svm' if (platform.system() == "Windows") else ''
+MAIN_PATH = 'seafog_svm'
 MODEL_PATH = os.path.join(MAIN_PATH, 'model')
 DATA_PATH = os.path.join(MAIN_PATH, 'data')
 OUTPUT_PATH = os.path.join(MAIN_PATH, 'output')
-DATA_PREFIX = '18'
 
 def get_name_tag(range_dic, sldn_dic):
     tag_name = ''
@@ -28,16 +25,16 @@ def get_name_tag(range_dic, sldn_dic):
     if sldn_dic['land']:
         tag_name += '_land'
     if sldn_dic['night']:
-        tag_name += '_n'
-    if sldn_dic['day']:
         tag_name += '_d'
+    if sldn_dic['day']:
+        tag_name += '_n'
     latlon_range = '_{}_{}_{}_{}'.format(range_dic['lat1'], range_dic['lon1'], range_dic['lat2'], range_dic['lon2'])
     tag_name += latlon_range
     return tag_name
 
 def train(data_path, range_dic, sldn_dic):
     # Get dataset
-    dataset = Dataset(data_path, range_dic, DATA_PREFIX)
+    dataset = Dataset(data_path, range_dic)
     X, Y = dataset.get_dataset(sldn_dic)
     X, Y = dataset.pn_sampling(X, Y, ratio=1)
     Y = Y.ravel()
@@ -60,34 +57,21 @@ def train(data_path, range_dic, sldn_dic):
     # Init model
     model = SVC(kernel='rbf', probability=True)
     # Grid search  
-    # best_parameters = grid_s(model, X_train_trans, y_train)
+    best_parameters = grid_s(model, X_train, y_train)
     # Train   
-    best_parameters = {'C':100, 'gamma': 0.5}
-    model = SVC(kernel='rbf', C=best_parameters['C'], gamma=best_parameters['gamma'], tol=0.0001, probability=True, verbose=True)    
-    model.fit(X_train_trans, y_train)
+    model = SVC(kernel='rbf', C=best_parameters['C'], gamma=best_parameters['gamma'], probability=True, verbose=True)    
+    model.fit(X_train, y_train)
 
     tag = get_name_tag(range_dic, sldn_dic)
-    model_path = os.path.join(MODEL_PATH, DATA_PREFIX + 'seafog' + tag)
+    model_path = os.path.join(MODEL_PATH, 'seafog' + tag)
     joblib.dump(model, model_path + '.pkl')
     print('Model save to:' + model_path + '.pkl')
-    # Get train result
-    test(model_path, X_train_trans, X_train, y_train, tag, True)
-    # Get test result
-    test(model_path, X_test_trans, X_test, y_test, tag, False)
+
+    test(model_path, X_test, y_test, tag)
 
     return model
 
-def grid_s(model, X_train, y_train):
-    param_grid = {'C': [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3, 1e4], 'gamma': [1e-3, 1e-2, 1e-1, 0.5, 1, 3.2, 6.4]}
-    grid_search = GridSearchCV(model, param_grid, n_jobs = 4, verbose=True)    
-    grid_search.fit(X_train, y_train)    
-    best_parameters = grid_search.best_estimator_.get_params()
-    
-    for para, val in list(best_parameters.items()):    
-        print(para, val)
-    return best_parameters
-
-def test(model_path, X, X_orig, y ,tag, is_train):
+def test(model_path, X, y ,tag):
     model = joblib.load(model_path + '.pkl')
     y_pred = model.predict(X)
     print(classification_report(y, y_pred))
@@ -98,13 +82,12 @@ def test(model_path, X, X_orig, y ,tag, is_train):
     r = tp / (tp+fn)
     f1 = (2*p*r) / (p+r)
     print('Recall: {}, Precision: {}, F1 score: {}.'.format(r, p, f1))
-    if is_train:
-        return
-    error_path = os.path.join(OUTPUT_PATH, DATA_PREFIX + 'error')
-    get_error_anal(X_orig, y_pred, y, error_path, tag)
+
+    error_path = os.path.join(OUTPUT_PATH, 'error')
+    get_error_anal(X, y_pred, y, error_path, tag)
 
 def main():
-    params_fp = os.path.join(MAIN_PATH, DATA_PREFIX + 'parameters.csv')
+    params_fp = os.path.join(MAIN_PATH, 'parameters.csv')
     range_list, sldn_list = get_params(params_fp)
     time_start = time.time()
     time_mid = time.time()
@@ -119,7 +102,7 @@ def main():
     print('Total_time:' + str(time_end - time_start))
 
 saved_std_out = sys.stdout
-with open(os.path.join(OUTPUT_PATH, DATA_PREFIX + 'out.txt'), 'w+') as f:
-    sys.stdout = f 
+with open(os.path.join(OUTPUT_PATH, 'out.txt'), 'w+') as f:
+    # sys.stdout = f  #标准输出重定向至文件
     main()
 sys.stdout = saved_std_out

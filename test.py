@@ -2,17 +2,20 @@ from datetime import datetime
 import os
 from openpyxl import load_workbook
 
-def save_error(file_path, tag):
-    analysis_path = file_path + '.xlsx'
-    wb = load_workbook(analysis_path)
-    wb.create_sheet(tag)
-    sheet = wb.get_sheet_by_name(tag)
-    clodk_cnt = [[1, 2, 3], ['asd', 'asd', 'test']]
-    for i in clock_cnt:
-        sheet.append(i)
-    wb.save(analysis_path)
+from pytz import timezone
 
-def get_error_anal(file_path, tag):
-    save_error(file_path, tag)
-
-get_error_anal('test', '233')
+dt = datetime.strptime('2018-1-24  17:00:00', '%Y-%m-%d %H:%M:%S').replace(tzinfo = timezone('UTC'))
+print(dt)
+timestamp = dt.timestamp()
+dt = datetime.fromtimestamp(timestamp, tz=timezone('UTC'))
+print(dt)
+x = []
+x += [1]
+x += ['1']
+def foo():
+    x1 = {'x': 5}
+    x2 = {}
+    x2[1] = [12, 3]
+    return x1, x2
+x1, x2 = foo()
+print(x1, x2)

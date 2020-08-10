@@ -3,6 +3,8 @@ import sys
 import platform
 import numpy as np
 import time
+from datetime import datetime
+from pytz import timezone
 
 from dataset import Dataset
 from utils.anal_error import get_error_anal
@@ -20,6 +22,7 @@ MODEL_PATH = os.path.join(MAIN_PATH, 'model')
 DATA_PATH = os.path.join(MAIN_PATH, 'data')
 OUTPUT_PATH = os.path.join(MAIN_PATH, 'output')
 DATA_PREFIX = '18'
+
 
 def get_name_tag(range_dic, sldn_dic):
     tag_name = ''
@@ -46,9 +49,8 @@ def train(data_path, range_dic, sldn_dic):
     # Split and normalization
     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=0)
     # X_test, X_valid, y_test, y_valid = train_test_split(X_test, y_test, test_size=0.33, random_state=0)
-    
     scaler = StandardScaler()
-    remain_idx = -2
+    remain_idx = -1
     X_train_trans = X_train[:, :remain_idx]
     X_test_trans = X_test[:, :remain_idx]
     scaler.fit(X_train_trans)
@@ -60,10 +62,10 @@ def train(data_path, range_dic, sldn_dic):
     # Init model
     model = SVC(kernel='rbf', probability=True)
     # Grid search  
-    # best_parameters = grid_s(model, X_train_trans, y_train)
+    best_parameters = grid_s(model, X_train_trans, y_train)
     # Train   
-    best_parameters = {'C':100, 'gamma': 0.5}
-    model = SVC(kernel='rbf', C=best_parameters['C'], gamma=best_parameters['gamma'], tol=0.0001, probability=True, verbose=True)    
+    # best_parameters = {'C':100, 'gamma': 0.5}
+    model = SVC(kernel='rbf', C=best_parameters['C'], gamma=best_parameters['gamma'], tol=0.0001, probability=True)    
     model.fit(X_train_trans, y_train)
 
     tag = get_name_tag(range_dic, sldn_dic)
@@ -71,9 +73,13 @@ def train(data_path, range_dic, sldn_dic):
     joblib.dump(model, model_path + '.pkl')
     print('Model save to:' + model_path + '.pkl')
     # Get train result
-    test(model_path, X_train_trans, X_train, y_train, tag, True)
+    test(model_path, X_train_trans, X_train, y_train)
     # Get test result
-    test(model_path, X_test_trans, X_test, y_test, tag, False)
+    y_pred = test(model_path, X_test_trans, X_test, y_test)
+    # Get error anal
+    info_dic = dataset.get_info_dic()
+    error_path = os.path.join(OUTPUT_PATH, DATA_PREFIX + 'error')
+    get_error_anal(X_test, y_pred, y_test, error_path, tag, info_dic)
 
     return model
 
@@ -87,7 +93,7 @@ def grid_s(model, X_train, y_train):
         print(para, val)
     return best_parameters
 
-def test(model_path, X, X_orig, y ,tag, is_train):
+def test(model_path, X, X_orig, y):
     model = joblib.load(model_path + '.pkl')
     y_pred = model.predict(X)
     print(classification_report(y, y_pred))
@@ -98,10 +104,7 @@ def test(model_path, X, X_orig, y ,tag, is_train):
     r = tp / (tp+fn)
     f1 = (2*p*r) / (p+r)
     print('Recall: {}, Precision: {}, F1 score: {}.'.format(r, p, f1))
-    if is_train:
-        return
-    error_path = os.path.join(OUTPUT_PATH, DATA_PREFIX + 'error')
-    get_error_anal(X_orig, y_pred, y, error_path, tag)
+    return y_pred
 
 def main():
     params_fp = os.path.join(MAIN_PATH, DATA_PREFIX + 'parameters.csv')

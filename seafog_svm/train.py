@@ -1,6 +1,5 @@
 import os
 import sys
-import platform
 import numpy as np
 import time
 from datetime import datetime
@@ -9,6 +8,7 @@ from pytz import timezone
 from dataset import Dataset
 from utils.anal_error import get_error_anal
 from utils.get_params import get_params
+import config as cfg
 
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -17,11 +17,6 @@ from sklearn.preprocessing import StandardScaler
 import joblib
 
 
-MAIN_PATH = 'seafog_svm' if (platform.system() == "Windows") else ''
-MODEL_PATH = os.path.join(MAIN_PATH, 'model')
-DATA_PATH = os.path.join(MAIN_PATH, 'data')
-OUTPUT_PATH = os.path.join(MAIN_PATH, 'output')
-DATA_PREFIX = '18'
 
 
 def get_name_tag(range_dic, sldn_dic):
@@ -40,7 +35,7 @@ def get_name_tag(range_dic, sldn_dic):
 
 def train(data_path, range_dic, sldn_dic):
     # Get dataset
-    dataset = Dataset(data_path, range_dic, DATA_PREFIX)
+    dataset = Dataset(data_path, range_dic, cfg.DATA_PREFIX)
     X, Y = dataset.get_dataset(sldn_dic)
     X, Y = dataset.pn_sampling(X, Y, ratio=1)
     Y = Y.ravel()
@@ -69,7 +64,7 @@ def train(data_path, range_dic, sldn_dic):
     model.fit(X_train_trans, y_train)
 
     tag = get_name_tag(range_dic, sldn_dic)
-    model_path = os.path.join(MODEL_PATH, DATA_PREFIX + 'seafog' + tag)
+    model_path = os.path.join(cfg.MODEL_PATH, cfg.DATA_PREFIX + 'seafog' + tag)
     joblib.dump(model, model_path + '.pkl')
     print('Model save to:' + model_path + '.pkl')
     # Get train result
@@ -78,7 +73,7 @@ def train(data_path, range_dic, sldn_dic):
     y_pred = test(model_path, X_test_trans, X_test, y_test)
     # Get error anal
     info_dic = dataset.get_info_dic()
-    error_path = os.path.join(OUTPUT_PATH, DATA_PREFIX + 'error')
+    error_path = os.path.join(cfg.OUTPUT_PATH, cfg.DATA_PREFIX + 'error')
     get_error_anal(X_test, y_pred, y_test, error_path, tag, info_dic)
 
     return model
@@ -107,12 +102,12 @@ def test(model_path, X, X_orig, y):
     return y_pred
 
 def main():
-    params_fp = os.path.join(MAIN_PATH, DATA_PREFIX + 'parameters.csv')
+    params_fp = os.path.join(cfg.MAIN_PATH, cfg.DATA_PREFIX + 'parameters.csv')
     range_list, sldn_list = get_params(params_fp)
     time_start = time.time()
     time_mid = time.time()
     for range_dic, sldn_dic in zip(range_list, sldn_list):
-        model = train(DATA_PATH, range_dic, sldn_dic)
+        model = train(cfg.DATA_PATH, range_dic, sldn_dic)
         print('For model:')
         print(range_dic, sldn_dic)
         print('Time cost:' + str(time.time() - time_mid))
@@ -122,7 +117,7 @@ def main():
     print('Total_time:' + str(time_end - time_start))
 
 saved_std_out = sys.stdout
-with open(os.path.join(OUTPUT_PATH, DATA_PREFIX + 'out.txt'), 'w+') as f:
-    sys.stdout = f 
+with open(os.path.join(cfg.OUTPUT_PATH, cfg.DATA_PREFIX + 'out.txt'), 'w+') as f:
+    # sys.stdout = f 
     main()
 sys.stdout = saved_std_out

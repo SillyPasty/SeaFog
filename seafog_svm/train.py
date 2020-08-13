@@ -118,6 +118,6 @@ def main():
 
 saved_std_out = sys.stdout
 with open(os.path.join(cfg.OUTPUT_PATH, cfg.DATA_PREFIX + 'out.txt'), 'w+') as f:
-    # sys.stdout = f 
+    sys.stdout = f 
     main()
 sys.stdout = saved_std_out

@@ -6,21 +6,20 @@ import csv
 def anal_error_data(test_X, predicted_Y, test_Y, info_dic):
     error_list = []
     for i, single_X in enumerate(test_X):
-        if predicted_Y[i] == test_Y[i]:
-            continue
         info_key = single_X[-1]
         info_headers = ['lon', 'lat', 'him_time', 'fog_mask', 'land_water_mask']
         info = info_dic[info_key]
         error_dic = {}
         for idx, header in enumerate(info_headers):
             error_dic[header] = info[idx]
+        error_dic['error'] = 0 if predicted_Y[i] == test_Y[i] else 1
         error_list.append(error_dic)
     return error_list
 
 def save_error(error_list, file_path, tag):
     analysis_path = file_path + tag + '.csv'
     with open(analysis_path, 'w') as f:
-        headers = ['lon', 'lat', 'him_time', 'fog_mask', 'land_water_mask']
+        headers = ['lon', 'lat', 'him_time', 'fog_mask', 'land_water_mask', 'error']
         cw = csv.DictWriter(f ,fieldnames=headers, lineterminator='\n')
         cw.writeheader()
 

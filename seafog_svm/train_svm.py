@@ -64,7 +64,7 @@ def train(data_path, range_dic, sldn_dic):
     model.fit(X_train_trans, y_train)
 
     tag = get_name_tag(range_dic, sldn_dic)
-    model_path = os.path.join(cfg.MODEL_PATH, cfg.DATA_PREFIX + 'seafog' + tag)
+    model_path = os.path.join(cfg.SVC_MODEL_PATH, cfg.DATA_PREFIX + 'seafog' + tag)
     joblib.dump(model, model_path + '.pkl')
     print('Model save to:' + model_path + '.pkl')
     # Get train result
@@ -79,7 +79,7 @@ def train(data_path, range_dic, sldn_dic):
     return model
 
 def grid_s(model, X_train, y_train):
-    param_grid = {'C': [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3, 1e4], 'gamma': [1e-3, 1e-2, 1e-1, 0.5, 1, 3.2, 6.4]}
+    param_grid = {'C': [1, 10, 50, 100, 500, 800, 1000, 1200], 'gamma': [0.5, 0.75, 1, 3.2, 6.4, 12.8, 25.6]}
     grid_search = GridSearchCV(model, param_grid, n_jobs = 4, verbose=True)    
     grid_search.fit(X_train, y_train)    
     best_parameters = grid_search.best_estimator_.get_params()

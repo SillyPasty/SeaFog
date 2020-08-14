@@ -131,7 +131,7 @@ class Dataset():
                     if lat > self.lat1 or lat < self.lat2 or lon > self.lon2 or lon < self.lon1:
                         continue
                     # save the info into dic
-                    info_headers = ['lon', 'lat', 'him_time', 'fog_mask', 'land_water_mask']
+                    info_headers = headers
                     sample_info = [row[tag] for tag in info_headers]
                     info_dic[sample_count] = sample_info
                     # add solar angle
@@ -142,7 +142,8 @@ class Dataset():
                     # Get day & night tag
                     tag = ''
                     channel_tags = ['B' + '{:0>2d}'.format(i) for i in range(1, 6)]
-                    night_flag = (sum([int(row[tag]) for tag in channel_tags]) == 0)
+                    dt = datetime.strptime(row['him_time'], '%Y-%m-%d %H:%M:%S').replace(tzinfo = timezone('UTC'))
+                    night_flag = (dt.hour >= 16)
                     sea_flag = row['land_water_mask'] == '1'
 
                     if sea_flag and night_flag:

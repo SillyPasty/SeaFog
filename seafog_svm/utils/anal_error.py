@@ -7,7 +7,7 @@ def anal_error_data(test_X, predicted_Y, test_Y, info_dic):
     error_list = []
     for i, single_X in enumerate(test_X):
         info_key = single_X[-1]
-        info_headers = ['lon', 'lat', 'him_time', 'fog_mask', 'land_water_mask']
+        info_headers = ['lon', 'lat', 'real_time', 'him_time', 'fog_mask', 'land_water_mask']
         him_headers = ['B' + '{:0>2d}'.format(i) for i in range(1, 17)]
         info_headers = info_headers + him_headers
         info = info_dic[info_key]
@@ -21,7 +21,7 @@ def anal_error_data(test_X, predicted_Y, test_Y, info_dic):
 def save_error(error_list, file_path, tag):
     analysis_path = file_path + tag + '.csv'
     with open(analysis_path, 'w') as f:
-        info_headers = ['lon', 'lat', 'him_time', 'fog_mask', 'land_water_mask', 'error']
+        info_headers = ['lon', 'lat', 'real_time', 'him_time', 'fog_mask', 'land_water_mask', 'error']
         him_headers = ['B' + '{:0>2d}'.format(i) for i in range(1, 17)]
         headers = info_headers + him_headers
         cw = csv.DictWriter(f ,fieldnames=headers, lineterminator='\n')

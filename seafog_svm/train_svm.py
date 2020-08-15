@@ -68,13 +68,14 @@ def train(data_path, range_dic, sldn_dic):
     joblib.dump(model, model_path + '.pkl')
     print('Model save to:' + model_path + '.pkl')
     # Get train result
-    test(model_path, X_train_trans, X_train, y_train)
+    y_pred_train = test(model_path, X_train_trans, X_train, y_train)
     # Get test result
-    y_pred = test(model_path, X_test_trans, X_test, y_test)
+    y_pred_test = test(model_path, X_test_trans, X_test, y_test)
     # Get error anal
     info_dic = dataset.get_info_dic()
     error_path = os.path.join(cfg.OUTPUT_PATH, cfg.DATA_PREFIX + 'error')
-    get_error_anal(X_test, y_pred, y_test, error_path, tag, info_dic)
+    get_error_anal(X_train, y_pred_train, y_train, error_path + '_train', tag, info_dic)
+    get_error_anal(X_test, y_pred_test, y_test, error_path + '_test', tag, info_dic)
 
     return model
 
@@ -117,7 +118,7 @@ def main():
     print('Total_time:' + str(time_end - time_start))
 
 saved_std_out = sys.stdout
-with open(os.path.join(cfg.OUTPUT_PATH, cfg.DATA_PREFIX + 'out.txt'), 'w+') as f:
+with open(os.path.join(cfg.OUTPUT_PATH, cfg.DATA_PREFIX + 'svmout.txt'), 'w+') as f:
     sys.stdout = f 
     main()
 sys.stdout = saved_std_out

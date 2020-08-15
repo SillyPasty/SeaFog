@@ -130,6 +130,8 @@ class Dataset():
                     lat, lon = float(row['lat']), float(row['lon'])
                     if lat > self.lat1 or lat < self.lat2 or lon > self.lon2 or lon < self.lon1:
                         continue
+                    if int(row['B01']) == -1:
+                        continue
                     # save the info into dic
                     info_headers = headers
                     sample_info = [row[tag] for tag in info_headers]

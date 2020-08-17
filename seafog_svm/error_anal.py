@@ -25,7 +25,7 @@ def get_name_tag(range_dic, sldn_dic):
     return tag_name
 
 def get_error_data(error_path):
-    info_headers = ['lon', 'lat', 'him_time', 'fog_mask', 'land_water_mask', 'error']
+    info_headers = ['lon', 'lat', 'real_time', 'him_time', 'fog_mask', 'land_water_mask', 'error']
     result = []
     with open(error_path, 'r') as f:
         reader = csv.DictReader(f, info_headers)
@@ -36,15 +36,13 @@ def get_error_data(error_path):
     return result
 
 def plot_error(fig_path, error_infos):
-    if not os.path.exists(fig_path):
-        os.mkdir(fig_path)
     total = {'month_list': [0 for i in range(12)], 'time_list': [0 for i in range(48)]}
     error = {'month_list': [0 for i in range(12)], 'time_list': [0 for i in range(48)], 'lat':[], 'lon': []}
     for error_info in error_infos:
         dt = datetime.strptime(error_info['him_time'], '%Y-%m-%d %H:%M:%S').replace(tzinfo = timezone('UTC'))
         total['month_list'][dt.month - 1] += 1
         total['time_list'][int(dt.hour * 2 + dt.minute / 30)] += 1
-        if error_info['error'] == '1':
+        if int(error_info['error']) == 1:
             error['month_list'][dt.month - 1] += 1
             error['time_list'][int(dt.hour * 2 + dt.minute / 30) - 1] += 1
             error['lat'].append(error_info['lat'])
@@ -53,7 +51,7 @@ def plot_error(fig_path, error_infos):
     total_width, n = 0.8, 3
     width = total_width / n
     # Plot time
-    plt_time = plt.subplot(3, 1, 1)
+    plt_time = plt.subplot(2, 1, 1)
     x_axis = [i for i in range(1, 49)]
     x_axis_labels = ['{}:{:0>2d}'.format(i//2, 30 if (i % 2 == 1) else 0) if (i % 4 == 0) else '' for i in range(48)]
     plt_time.bar(x_axis, error['time_list'], width=width, label='error', fc='y')
@@ -62,15 +60,15 @@ def plot_error(fig_path, error_infos):
     # plt_time.legend()
     # plt_time.xticks(rotation=270)
     # Plot month
-    plt_month = plt.subplot(3, 1, 2)
+    plt_month = plt.subplot(2, 1, 2)
     x_axis = [i for i in range(1, 13)]
     plt_month.bar(x_axis, error['month_list'], width=width, label='error', fc='y')
     x_axis = [x + width for x in x_axis]
     plt_month.bar(x_axis, total['month_list'], width=width, label='total', fc='r')
     # plt_month.legend()
 
-    plt.savefig(os.path.join(fig_path, 'time.png'))
-
+    plt.savefig(os.path.join(fig_path +'time.png'))
+    plt.clf()
     # Plot error point on the map
     img_path = os.path.join(cfg.DATA_PATH, 'img', 'area.png')
     real_img = cv2.imread(img_path)
@@ -83,7 +81,7 @@ def plot_error(fig_path, error_infos):
         real_img[x, y, 2] = 255
         real_img[x, y, 1] = 0
         real_img[x, y, 0] = 0
-    cv2.imwrite(os.path.join(fig_path, 'map.png'), real_img)
+    cv2.imwrite(os.path.join(fig_path + 'map.png'), real_img)
     return
 
 
@@ -94,7 +92,7 @@ def main():
     time_mid = time.time()
     for range_dic, sldn_dic in zip(range_list, sldn_list):
         name_tag = get_name_tag(range_dic, sldn_dic)
-        error_file_name = os.path.join(cfg.OUTPUT_PATH, cfg.DATA_PREFIX + 'error' + name_tag + '.csv')
+        error_file_name = os.path.join(cfg.OUTPUT_PATH, 'svm', cfg.DATA_PREFIX + 'error_test' + name_tag + '.csv')
         error = get_error_data(error_file_name)
         
         fig_path = os.path.join(cfg.OUTPUT_PATH, cfg.DATA_PREFIX + 'error' + name_tag)

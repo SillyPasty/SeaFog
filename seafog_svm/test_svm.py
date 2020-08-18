@@ -11,6 +11,8 @@ import numpy as np
 import time
 import math
 import joblib
+import pysolar
+import pytz
 
 SPACE_R = 0.0125
 START_LAT = 45.
@@ -24,6 +26,16 @@ def get_axis(lat, lon):
     if y_axis == 3600: y_axis -= 1
 
     return x_axis, y_axis
+
+def get_solar_angle(datetime, shape):
+    solar_angle_data = np.zeros((shape[0], shape[1], 1))
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            lat = START_LAT - SPACE_R * i
+            lon = START_LON + SPACE_R * j
+            solar_angle = solar.get_altitude(lat, lon, datetime)
+            solar_angle_data[i][j][0] = solar_angle
+    return solar_angle_data
 
 def get_file_dir(path_dic, dt):
     folder_name = dt.strftime('%Y%m%d')
@@ -65,10 +77,43 @@ def get_him_data(path_dic, him_time):
         else:
             him_data.append(None)
     # 16 * height * width
+    him_data = np.asarray(him_data)
+    him_data = him_data.transpose(1, 2, 0)
+    assert him_data.shape == (2160, 3600, 16), print(him_data.shape)
     return him_data
 
-def test(model_path, data_path, time_range):
+def plot_mask(origin_map_path, mask, target_area, save_path):
+    x_axis1, y_axis1 = get_axis(target_area['lat1'], target_area['lon1'])
+    x, y = mask.shape[0], mask.shape[1]
+    real_img = cv2.imread(origin_map_path)
+    for i in range(x):
+        for j in range(y):
+            if mask[i, j, 0] == 0:
+                continue
+            real_img[x_axis1+i, y_axis1+j, 2] = 255
+            real_img[x_axis1+i, y_axis1+j, 1] = 255
+            real_img[x_axis1+i, y_axis1+j, 0] = 255
+
+    cv2.imwrite(save_path + '.png', real_img)
+
+
+def test(model_path, data_path, datetime, target_area):
+    him_data = get_him_data(data_path, datetime)
+    solar_angle = get_solar_angle(datetime, him_data.shape)
+    test_data = np.concatenate((him_data, solar_angle), axis=2)
+    assert test_data.shape == (2160, 3600, 17), print(test_data.shape)
+
+    x_axis1, y_axis1 = get_axis(target_area['lat1'], target_area['lon1'])
+    x_axis2, y_axis2 = get_axis(target_area['lat2'], target_area['lon2'])
+    test_data = test_data[x_axis1:x_axis2, y_axis1: y_axis2, :]
+    origin_shape = (test_data.shape[0], test_data.shape[1])
+    test_data = test_data.reshape(-1, 17)
+    
     model = joblib.load(model_path + '.pkl')
+    predicted = model.predic(test_data)
+
+    predict_mask = predicted.reshape(origin_shape[0], origin_shape[1], -1)
+    return predict_mask
 
     
     
@@ -76,15 +121,41 @@ def test(model_path, data_path, time_range):
 def main():
     start_time = time.time()
     path_dic = get_path_dic()
-    vfm_dir = os.path.join('calipso', 'vfm')
-    vfm_him_dir = os.path.join('calipso', 'him_vfm')
-    stat = {'total': 0, 'success': 0, 'failed': 0}
-    for fn in os.listdir(vfm_dir):
-        vfm_fn = os.path.join(vfm_dir, fn)
-        vfm_him_fn = os.path.join(vfm_him_dir, fn)
-        print('Processing ', vfm_fn)
+    model_path = ''
+    output_path = os.path.join('calipso', 'predicted')
+    origin_map_path = ''
+    target_area = {
+        'lat1':1,
+        'lon1':2,
+        'lat1':3,
+        'lat2':4
+    }
+    time_range = {
+        'year': [2019],
+        'month': [i for i in range(1, 13)],
+        'day': [i for i in range(1, 32)],
+        'hour': [i for i in range(24)],
+        'minutes': [0, 30]
+    }
+    for year in time_range['year']:
+        for month in time_range['month']:
+            for day in time_range['day']:
+                for hour in time_range['hour']:
+                    for minute in time_range['minutes']:
+                        dt = None
+                        try:
+                            dt = datetime.datetime(year=year, month=month, day=day,hour=hour, minute=minute)
+                        except Exception as e:
+                            continue
+                        file_dir = get_file_dir(path_dic, dt)
+                        if file_dir == None:
+                            continue
+                        mask = test(model_path, file_dir, dt, target_area)
+                        
+                        result_path = os.path.join(output_path, dt.strftime('%Y-%m-%d %H:%M'))
+                        plot_mask(origin_map_path, mask, target_area,  )
+
 
     print('Time cost: ', str(time.time() - start_time))
-    print('Total: {total}, Success: {success}, Failed: {failed}'.format(**stat))
 
 main()

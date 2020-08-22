@@ -107,10 +107,7 @@ def gen_him_vfm_dataset(vfm_fn, vfm_him_fn, path_dic, stat):
                         try:
                             x, y = get_axis(lat, lon)
                             val = ch_data[x, y]
-                            log_root = math.log10(0.0223)
-                            denom = (1 - log_root) * 0.75
                             if i > 6: val += 200
-                            else: val = pow()
                             row[channel_str] = val
                         except Exception as e:
                             print(e)

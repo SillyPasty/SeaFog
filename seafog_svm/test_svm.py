@@ -23,12 +23,12 @@ def get_axis(lat, lon, space_r):
 
     return x_axis, y_axis
 
-def get_solar_angle(datetime, shape):
+def get_solar_angle(datetime, shape, start_lat, start_lon):
     solar_angle_data = np.zeros((shape[0], shape[1], 1))
     for i in range(shape[0]):
         for j in range(shape[1]):
-            lat = START_LAT - SPACE_R * i
-            lon = START_LON + SPACE_R * j
+            lat = start_lat - SPACE_R * i
+            lon = start_lon + SPACE_R * j
             solar_angle = solar.get_altitude(lat, lon, datetime)
             solar_angle_data[i][j][0] = solar_angle
     return solar_angle_data
@@ -69,6 +69,7 @@ def get_him_data(path_dic, him_time):
         if os.path.exists(him_file):
             # print('\rReading img ', him_file, end='')
             img = np.asarray(Image.open(him_file))
+            if i > 6: img += 200
             him_data.append(img)
         else:
             him_data.append(None)
@@ -96,17 +97,17 @@ def plot_mask(origin_map_path, mask, target_area, save_path):
 def test(model, data_path, datetime, target_area):
     print('Reading data...')
     him_data = get_him_data(data_path, datetime)
-    solar_angle = get_solar_angle(datetime, him_data.shape)
-    test_data = np.concatenate((him_data, solar_angle), axis=2)
-    assert test_data.shape == (2160, 3600, 17), print(test_data.shape)
-
     x_axis1, y_axis1 = get_axis(target_area['lat1'], target_area['lon1'], SPACE_R)
     x_axis2, y_axis2 = get_axis(target_area['lat2'], target_area['lon2'], SPACE_R)
-    test_data = test_data[x_axis1:x_axis2, y_axis1: y_axis2, :]
+    him_data = him_data[x_axis1:x_axis2, y_axis1: y_axis2, :]
+    solar_angle = get_solar_angle(datetime, him_data.shape, target_area['lat1'], target_area['lon1'])
+    test_data = np.concatenate((him_data, solar_angle), axis=2)
+    # assert test_data.shape == (2160, 3600, 17), print(test_data.shape)
+
     origin_shape = (test_data.shape[0], test_data.shape[1])
     test_data = test_data.reshape(-1, 17)
     print('Predicting...')
-    predicted = model.predic(test_data)
+    predicted = model.predict(test_data)
 
     predict_mask = predicted.reshape(origin_shape[0], origin_shape[1], -1)
     return predict_mask
@@ -122,14 +123,15 @@ def main():
     target_area = {
         'lat1':41.,
         'lon1':117.5,
-        'lat1':34,
-        'lat2':127
+        'lat2':34,
+        'lon2':127
     }
     time_range = {
         'year': [2020],
         'month': [5],
         'day': [1],
-        'hour': [i for i in range(24)],
+        # 'hour': [i for i in range(24)],
+        'hour': [0],
         'minutes': [0]
     }
     model_day = joblib.load(model_path + 'day.pkl')

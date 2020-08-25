@@ -9,6 +9,7 @@ import numpy as np
 import joblib
 from pysolar import solar
 from pytz import timezone
+from sklearn.preprocessing import StandardScaler
 
 SPACE_R = 0.0125
 START_LAT = 45.
@@ -69,7 +70,10 @@ def get_him_data(path_dic, him_time):
         if os.path.exists(him_file):
             # print('\rReading img ', him_file, end='')
             img = np.asarray(Image.open(him_file))
-            if i > 6: img += 200
+            img = img.copy()
+            img = img.astype(np.float64)
+            if i > 6: 
+                img += 200
             him_data.append(img)
         else:
             him_data.append(None)
@@ -88,8 +92,8 @@ def plot_mask(origin_map_path, mask, target_area, save_path):
             if mask[i, j, 0] == 0:
                 continue
             real_img[x_axis1+i, y_axis1+j, 2] = 255
-            real_img[x_axis1+i, y_axis1+j, 1] = 255
-            real_img[x_axis1+i, y_axis1+j, 0] = 255
+            real_img[x_axis1+i, y_axis1+j, 1] = 0
+            real_img[x_axis1+i, y_axis1+j, 0] = 0
 
     cv2.imwrite(save_path + '.png', real_img)
 
@@ -102,14 +106,22 @@ def test(model, data_path, datetime, target_area):
     him_data = him_data[x_axis1:x_axis2, y_axis1: y_axis2, :]
     solar_angle = get_solar_angle(datetime, him_data.shape, target_area['lat1'], target_area['lon1'])
     test_data = np.concatenate((him_data, solar_angle), axis=2)
+    print(test_data.shape)
     # assert test_data.shape == (2160, 3600, 17), print(test_data.shape)
 
     origin_shape = (test_data.shape[0], test_data.shape[1])
     test_data = test_data.reshape(-1, 17)
+    
+    scaler = StandardScaler()
+    scaler.fit(test_data)
+    test_data = scaler.transform(test_data)
+    # np.save('test', test_data)
     print('Predicting...')
     predicted = model.predict(test_data)
 
     predict_mask = predicted.reshape(origin_shape[0], origin_shape[1], -1)
+    print(predict_mask.shape)
+    print(np.sum(predict_mask))
     return predict_mask
 
 def main():
@@ -130,9 +142,9 @@ def main():
         'year': [2020],
         'month': [5],
         'day': [1],
-        # 'hour': [i for i in range(24)],
-        'hour': [0],
-        'minutes': [0]
+        'hour': [i for i in range(24)],
+        # 'hour': [0],
+        'minutes': [0, 30]
     }
     model_day = joblib.load(model_path + 'day.pkl')
     model_night = joblib.load(model_path + 'night.pkl')
@@ -152,6 +164,7 @@ def main():
                         if file_dir == None:
                             continue
                         mask = test(model, file_dir, dt, target_area)
+                        # mask = np.ones((500, 500, 1))
                         print('Plotting result...')
                         result_path = os.path.join(output_path, dt.strftime('%Y-%m-%d %H:%M'))
                         plot_mask(origin_map_path, mask, target_area, result_path)

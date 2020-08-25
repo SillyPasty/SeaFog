@@ -37,6 +37,6 @@ def test_file(dir_path, file_name):
 
 
 
-# read_files(GenCfg.HDF_FILE_DIR)
+read_files(r'calipso\data\2020\202005')
 # test_file(r"calipso\data\2018", r"CAL_LID_L2_VFM-Standard-V4-20.2018-04-18T04-07-42ZD_Subset.hdf")
 

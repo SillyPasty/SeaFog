@@ -11,6 +11,16 @@ class VFM():
         self.file_name = fn
 
     def plot(self, result_file_dir, show):
+        img = get_plot_vfm()
+        img_name = osp.join(result_file_dir, self.file_name[:-3])
+        if show:
+            cv2.imshow('result', img)
+            cv2.waitKey(0)
+        else:
+            cv2.imwrite(img_name + 'png', img)
+            print('File write to ' + img_name + 'png')
+        
+    def get_plot_vfm(self):
         """
         Extracts feature type for each element in a vertical feature mask array:
 
@@ -29,13 +39,7 @@ class VFM():
             for j, cell in enumerate(rows):
                 img[i, j] = colors[cell]
 
-        img_name = osp.join(result_file_dir, self.file_name[:-3])
-        if show:
-            cv2.imshow('result', img)
-            cv2.waitKey(0)
-        else:
-            cv2.imwrite(img_name + 'png', img)
-            print('File write to ' + img_name + 'png')
+        return img
 
     def get_fog_mask(self ,ratio, height):
         """

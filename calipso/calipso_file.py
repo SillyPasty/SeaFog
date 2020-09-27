@@ -18,7 +18,7 @@ class CalipsoFile():
         for idx,sds in enumerate(datasets_dic.keys()):
             print(idx, sds)
 
-    def plot_path(self, img, fog_mask_ratio):
+    def plot_path_with_mask(self, img, fog_mask_ratio):
         ss_lat_data = self.hdf_file.select('ssLatitude').get()
         ss_lon_data = self.hdf_file.select('ssLongitude').get()
         fog_mask = self.get_vfm_fog_mask(fog_mask_ratio)
@@ -31,6 +31,17 @@ class CalipsoFile():
             if fog == 1:
                 img[lat_cell, lon_cell, 0] = 0
                 img[lat_cell, lon_cell, 2] = 255
+        return img
+
+    def get_plot_path(self, img):
+        ss_lat_data = self.hdf_file.select('ssLatitude').get()
+        ss_lon_data = self.hdf_file.select('ssLongitude').get()
+        for lat, lon in zip(ss_lat_data, ss_lon_data):
+            lat_cell = (int)((lat - GenCfg.START_LAT) / -GenCfg.SPACE_R)
+            lon_cell = (int)((lon - GenCfg.START_LON) / GenCfg.SPACE_R)
+            img[lat_cell, lon_cell, 0] = 0
+            img[lat_cell, lon_cell, 1] = 0
+            img[lat_cell, lon_cell, 2] = 0
         return img
 
     def get_lon_lat(self):
@@ -98,3 +109,6 @@ class CalipsoFile():
     
     def plot_vfm(self, result_path, show=False):
         self.vfm.plot(result_path, show)
+    
+    def get_plot_vfm(self):
+        return self.vfm.get_plot_vfm()

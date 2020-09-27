@@ -67,3 +67,10 @@ def single_pros(dt, channel_dic, gamma_dic, range_dic):
 
     merged_img = img_merge(img_dic, gamma_dic)
     return merged_img
+
+def main():
+    # dt is datetime of the him-data
+    dt = None
+    channel_dic, gamma_dic, range_dic = input_pros()
+    merged_img = single_pros(dt, channel_dic, gamma_dic, range_dic)
+    # save img

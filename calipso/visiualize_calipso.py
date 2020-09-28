@@ -12,10 +12,6 @@ import time
 SIZE_WIDTH = 3600
 SIZE_HEIGHT = 2160
 
-total = 0
-invalid_vfm = 0
-invalid_him = 0
-
 def get_file_dir(path_dic, dt):
     folder_name = dt.strftime('%Y%m%d')
     path = path_dic.get(folder_name)
@@ -65,6 +61,7 @@ def get_result_path(result_dir, dt):
     return result_path
 
 def plot_path_vfm(vfm_dir_path, path_dic, result_dir):
+    total, invalid_vfm, invalid_him = 0, 0, 0
     for fn in os.listdir(vfm_dir_path):
         if fn[-4:] == '.hdf':
             total += 1
@@ -104,18 +101,24 @@ def plot_path_vfm(vfm_dir_path, path_dic, result_dir):
             cv2.imwrite(os.path.join(result_path, fn_prefix + "vfm.png"), vfm_img)
             cv2.imwrite(os.path.join(result_path, fn_prefix + "path_mask.png"), path_mask_img)
             cv2.imwrite(os.path.join(result_path, fn_prefix + "path_img.png"), path_img)
+    return total, invalid_vfm, invalid_him
 
 def main():
     VFM_DIR = os.path.join('calipso', 'data', 'data')
     HIM_DIR = os.path.join('/NAS', 'Himawari8')
     RESULT_DIR = os.path.join('calipso', 'data', 'output')
+    total, invalid_vfm, invalid_him = 0, 0, 0
     path_dic = get_path_dic(HIM_DIR)
     for sub_dir in os.listdir(VFM_DIR):
         vfm_dir = os.path.join(VFM_DIR, sub_dir)
-        plot_path_vfm(vfm_dir, path_dic, RESULT_DIR)
+        t, iv, ih = plot_path_vfm(vfm_dir, path_dic, RESULT_DIR)
+        total += t
+        invalid_vfm += iv
+        invalid_him += ih
+    print('TOTAL_vfm:', total)
+    print('Invalid vfm:', invalid_vfm)
+    print('Invalid him:', invalid_him) 
+
 start_t = time.time()
 main()
-print('\nTotal time:', time.time() - start_t)
-print('Total_vfm:', total)
-print('Invalid vfm:', invalid_vfm)
-print('Invalid him:', invalid_him)  
+print('\nTOTAL time:', time.time() - start_t)

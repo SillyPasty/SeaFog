@@ -12,6 +12,10 @@ import time
 SIZE_WIDTH = 3600
 SIZE_HEIGHT = 2160
 
+total = 0
+invalid_vfm = 0
+invalid_him = 0
+
 def get_file_dir(path_dic, dt):
     folder_name = dt.strftime('%Y%m%d')
     path = path_dic.get(folder_name)
@@ -63,22 +67,26 @@ def get_result_path(result_dir, dt):
 def plot_path_vfm(vfm_dir_path, path_dic, result_dir):
     for fn in os.listdir(vfm_dir_path):
         if fn[-4:] == '.hdf':
+            total += 1
             print('\rProcessing {}'.format(fn), end='')
             calipso_file = CalipsoFile(vfm_dir_path, fn)
             if calipso_file.is_valid_file(10):
-                print('\nCalipso data does not valid!')
+                # print('\nCalipso data does not valid!')
+                invalid_vfm += 1
                 continue
             vfm_dt = calipso_file.get_start_time()
             him_dt = trans_time(vfm_dt)
             file_path = get_file_dir(path_dic, him_dt)
             if file_path == None:
-                print('\nHim data does not exist!')
+                # print('\nHim data does not exist!')
+                invalid_him += 1
                 continue
             # him_nc_img = np.asarray(Image.open(file_path))
             him_nc_img, flg = get_nc_img(him_dt, file_path)
             
             if flg == False:
-                print('\nHim image does not exist!')
+                # print('\nHim image does not exist!')
+                invalid_him += 1
                 continue
 
             path_mask = np.full((SIZE_HEIGHT, SIZE_WIDTH, 1), 1, dtype=np.uint8)
@@ -92,9 +100,10 @@ def plot_path_vfm(vfm_dir_path, path_dic, result_dir):
             path_mask_img = np.multiply(path_mask, path_mask_img)
 
             result_path = get_result_path(result_dir, him_dt)
-            cv2.imwrite(os.path.join(result_path, "vfm.png"), vfm_img)
-            cv2.imwrite(os.path.join(result_path, "path_mask.png"), path_mask_img)
-            cv2.imwrite(os.path.join(result_path, "path_img.png"), path_img)
+            fn_prefix = him_dt.strftime("%Y-%m-%d_%H-%M_")
+            cv2.imwrite(os.path.join(result_path, fn_prefix + "vfm.png"), vfm_img)
+            cv2.imwrite(os.path.join(result_path, fn_prefix + "path_mask.png"), path_mask_img)
+            cv2.imwrite(os.path.join(result_path, fn_prefix + "path_img.png"), path_img)
 
 def main():
     VFM_DIR = os.path.join('calipso', 'data', 'data')
@@ -106,4 +115,7 @@ def main():
         plot_path_vfm(vfm_dir, path_dic, RESULT_DIR)
 start_t = time.time()
 main()
-print('Total time:', time.time() - start_t)     
+print('\nTotal time:', time.time() - start_t)
+print('Total_vfm:', total)
+print('Invalid vfm:', invalid_vfm)
+print('Invalid him:', invalid_him)  

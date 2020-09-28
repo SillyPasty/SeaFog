@@ -25,7 +25,7 @@ class VFM():
         Extracts feature type for each element in a vertical feature mask array:
 
             0 = invalid (bad or missing data)  black
-            1 = 'clear air'                    red
+            1 = 'clear air'                    white
             2 = cloud                          light blue
             3 = aerosol                        yellow
             4 = stratospheric feature          pink
@@ -34,7 +34,7 @@ class VFM():
             7 = no signal (totally attenuated)
         """
         img = np.zeros((self.vfm.shape[0], self.vfm.shape[1], 3), dtype=np.uint8)
-        colors = [[0, 0, 0], [0, 0, 255], [220, 220, 0], [0, 220, 220], [220, 0, 220], [255, 0, 0], [0, 255, 0], [0, 0, 0]]
+        colors = [[0, 0, 0], [255, 255, 255], [220, 220, 0], [0, 220, 220], [220, 0, 220], [255, 0, 0], [0, 255, 0], [0, 0, 0]]
         for i, rows in enumerate(self.vfm):
             for j, cell in enumerate(rows):
                 img[i, j] = colors[cell]
@@ -46,7 +46,7 @@ class VFM():
             Vertical feature mask array:
 
                 0 = invalid (bad or missing data)  black
-                1 = 'clear air'                    red
+                1 = 'clear air'                    white
                 2 = cloud                          light blue
                 3 = aerosol                        yellow
                 4 = stratospheric feature          pink

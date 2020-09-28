@@ -11,7 +11,7 @@ class VFM():
         self.file_name = fn
 
     def plot(self, result_file_dir, show):
-        img = get_plot_vfm()
+        img = self.get_plot_vfm()
         img_name = osp.join(result_file_dir, self.file_name[:-3])
         if show:
             cv2.imshow('result', img)

@@ -5,6 +5,7 @@ import os
 import os.path as osp
 from vfm import VFM
 from cfg import GenCfg
+from datetime import datetime, timedelta
 
 class CalipsoFile():
     
@@ -39,9 +40,11 @@ class CalipsoFile():
         for lat, lon in zip(ss_lat_data, ss_lon_data):
             lat_cell = (int)((lat - GenCfg.START_LAT) / -GenCfg.SPACE_R)
             lon_cell = (int)((lon - GenCfg.START_LON) / GenCfg.SPACE_R)
+            if lat_cell >= img.shape[0]:
+                lat_cell = img.shape[0] - 1
+            if lon_cell >= img.shape[1]:
+                lon_cell = img.shape[1] - 1
             img[lat_cell, lon_cell, 0] = 0
-            img[lat_cell, lon_cell, 1] = 0
-            img[lat_cell, lon_cell, 2] = 0
         return img
 
     def get_lon_lat(self):
@@ -74,24 +77,39 @@ class CalipsoFile():
         return clock_count, result_dic
 
     def is_valid_file(self, threshold):
-        _, minute = self.get_seperate_clocks()
-        min_dif = min(abs(minute - 0), abs(minute - 30), abs(minute - 60))
-        if min_dif < threshold:
+        time_data = self.get_time()
+        start_dt = self.parse_ss_time(time_data[0, 0])
+        end_dt = self.parse_ss_time(time_data[-1, 0])
+        s_min, e_min = start_dt.minute, end_dt.minute
+        if (e_min <= threshold and (60 - threshold <= s_min or s_min <= threshold)) or \
+           (e_min <= 30 + threshold and (30 - threshold <= s_min or s_min <= 30 + threshold)):
             return True
         return False
 
     def get_seperate_clocks(self):
-        datetime_str = self.file_name[30:49]
-        time_str = datetime_str[11:20]
-        hour_str = time_str[0:2]
-        min_str = time_str[3:5]
-        hour = int(hour_str)
-        minute = int(min_str)
+        time_data = self.get_time()
+        dt = self.parse_ss_time(time_data[0, 0])
+        hour = dt.hour
+        minute = dt.minute
         return hour, minute
+    
+    def get_start_time(self):
+        time_data = self.get_time()
+        start_dt = self.parse_ss_time(time_data[0, 0])
+        return start_dt
 
     def get_time(self):
         datas = self.hdf_file.select('ssProfile_UTC_Time').get()
         return datas
+
+    def parse_ss_time(self, ss_time):
+        time_str = str(ss_time)
+        form = '%y%m%d'
+        time = datetime.strptime(time_str[:6], form)
+        fraction = float(time_str[6:])
+        delta = timedelta(seconds = 24 * 3600 * fraction)
+        time += delta
+        return time
 
     def get_land_water_mask(self):
         # 

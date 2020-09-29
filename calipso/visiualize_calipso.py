@@ -67,7 +67,7 @@ def plot_path_vfm(vfm_dir_path, path_dic, result_dir):
             total += 1
             print('\rProcessing {}'.format(fn), end='')
             calipso_file = CalipsoFile(vfm_dir_path, fn)
-            if calipso_file.is_valid_file(10):
+            if not calipso_file.is_valid_file(10):
                 # print('\nCalipso data does not valid!')
                 invalid_vfm += 1
                 continue
@@ -103,6 +103,23 @@ def plot_path_vfm(vfm_dir_path, path_dic, result_dir):
             cv2.imwrite(os.path.join(result_path, fn_prefix + "path_img.png"), path_img)
     return total, invalid_vfm, invalid_him
 
+def count_valid():
+    VFM_DIR = os.path.join('calipso', 'data', 'data')
+    total, valid = 0, 0
+    for sub_dir in os.listdir(VFM_DIR):
+        # print(type(sub_dir))
+        # if sub_dir != '2017' or sub_dir != '2018' or sub_dir != '2019':
+        #     continue
+        # print(sub_dir)
+        vfm_dir = os.path.join(VFM_DIR, sub_dir)
+        for fn in os.listdir(vfm_dir):
+            calipso_file = CalipsoFile(vfm_dir, fn)
+            if calipso_file.is_valid_file(10):
+                valid += 1
+            total += 1
+    print("Total:", total)
+    print("valid:", valid)
+
 def main():
     VFM_DIR = os.path.join('calipso', 'data', 'data')
     HIM_DIR = os.path.join('/NAS', 'Himawari8')
@@ -121,4 +138,5 @@ def main():
 
 start_t = time.time()
 main()
+# count_valid()
 print('\nTOTAL time:', time.time() - start_t)

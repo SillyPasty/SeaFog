@@ -1,0 +1,12 @@
+
+class OUC():
+    SIZE = (851, 651)
+    START_LON, END_LON = 115, 128
+    START_LAT, END_LAT = 42, 25
+    RESOLUTION = 0.02
+
+class Him():
+    SIZE = (3600, 2160)
+    START_LON, END_LON = 105, 150
+    START_LAT, END_LAT = 45, 18
+    RESOLUTION = 0.0125

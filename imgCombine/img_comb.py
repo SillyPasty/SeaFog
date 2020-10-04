@@ -1,31 +1,64 @@
 from PIL import Image
 import numpy as np
-
+import os.path as osp
+import os
+import cv2
+import math
+from skimage import exposure
+"""
+def gamma_trans(img,img_gray):
+    mean = np.mean(img_gray)
+    gamma_val = math.log10(0.5) / math.log10(mean / 255)
+    gamma_table = [np.power(x / 255.0, gamma_val) * 255.0 for x in range(256)]
+    gamma_table = np.round(np.array(gamma_table)).astype(np.uint8)
+    return cv2.LUT(img, gamma_table)
+"""
 def img_merge(img_dic, gamma_dic):
     """ 
     Input three images (R, G, B) and gamma
     Merge them and return.
     """
-    img = None
+    rgb = []
+    for key in img_dic:
+        rgb.append(img_dic[key])
+    gamma = []
+    for key in gamma_dic:
+        gamma.append(gamma_dic[key])
+    #gamma变换
+    gamma_img_r = exposure.adjust_gamma(rgb[0], float(gamma[0]))
+    gamma_img_g = exposure.adjust_gamma(rgb[1], float(gamma[1]))
+    gamma_img_b = exposure.adjust_gamma(rgb[2], float(gamma[2]))
+    img = cv2.merge([gamma_img_r, gamma_img_g, gamma_img_b])
+
+    #img = cv2.merge([rgb[0], rgb[1], rgb[2]])
     return img
+
 
 def get_fn(channel, dt):
     """ 
     Input channel and datetime
     Return him filename
     """
-    if channel == 0:
+
+    if channel == '0':
         return None
-    fn = ""
-    return fn
+    dir = os.getcwd()
+    fn = channel + "_" + dt[0:8] + "_" + dt[8:] + ".png"
+    return osp.join(dir, fn)
+
 
 def substract(img_a, img_b, ranges):
     """ 
-    return A - B within range (tuple)
+    return A - B with range (tuple)
     """
     maximum, minimum = ranges
-    img = None
+    img_a.astype(np.uint32)
+    img_b.astype(np.uint32)
+    img = img_a - img_b
+    #映射到0-255
+    img = cv2.normalize(img, None, 0, 255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC3)
     return img
+
 
 def input_pros():
     channels = ['R', 'G', 'B']
@@ -46,6 +79,7 @@ def input_pros():
         range_dic[ch] = (maximum, minimum)
     return channel_dic, gamma_dic, range_dic
 
+
 def single_pros(dt, channel_dic, gamma_dic, range_dic):
     """ 
         Input datetime, process input and return 
@@ -59,7 +93,7 @@ def single_pros(dt, channel_dic, gamma_dic, range_dic):
         img_b_path = get_fn(channel_dic[ch][1], dt)
 
         img_a = np.asarray(Image.open(img_a_path))
-        img_b = np.zeros(img_a.shape) # TODO: add dtype attribute
+        img_b = np.zeros(img_a.shape)  # TODO: add dtype attribute
         if img_b_path != None:
             img_b = np.asarray(Image.open(img_b_path))
 
@@ -68,9 +102,17 @@ def single_pros(dt, channel_dic, gamma_dic, range_dic):
     merged_img = img_merge(img_dic, gamma_dic)
     return merged_img
 
+
 def main():
     # dt is datetime of the him-data
-    dt = None
+    dt = "201812030330"
     channel_dic, gamma_dic, range_dic = input_pros()
     merged_img = single_pros(dt, channel_dic, gamma_dic, range_dic)
+    cv2.imwrite('merged2.png', merged_img)
+    cv2.imshow('merged_img', merged_img)
+    cv2.waitKey(0)
     # save img
+
+
+if __name__ == '__main__':
+    main()

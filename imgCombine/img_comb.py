@@ -5,6 +5,7 @@ import os
 import cv2
 import math
 from skimage import exposure
+
 """
 def gamma_trans(img,img_gray):
     mean = np.mean(img_gray)
@@ -13,8 +14,10 @@ def gamma_trans(img,img_gray):
     gamma_table = np.round(np.array(gamma_table)).astype(np.uint8)
     return cv2.LUT(img, gamma_table)
 """
+
+
 def img_merge(img_dic, gamma_dic):
-    """ 
+    """
     Input three images (R, G, B) and gamma
     Merge them and return.
     """
@@ -24,18 +27,18 @@ def img_merge(img_dic, gamma_dic):
     gamma = []
     for key in gamma_dic:
         gamma.append(gamma_dic[key])
-    #gamma变换
+    # gamma变换
     gamma_img_r = exposure.adjust_gamma(rgb[0], float(gamma[0]))
     gamma_img_g = exposure.adjust_gamma(rgb[1], float(gamma[1]))
     gamma_img_b = exposure.adjust_gamma(rgb[2], float(gamma[2]))
     img = cv2.merge([gamma_img_r, gamma_img_g, gamma_img_b])
 
-    #img = cv2.merge([rgb[0], rgb[1], rgb[2]])
+    # img = cv2.merge([rgb[0], rgb[1], rgb[2]])
     return img
 
 
 def get_fn(channel, dt):
-    """ 
+    """
     Input channel and datetime
     Return him filename
     """
@@ -47,15 +50,35 @@ def get_fn(channel, dt):
     return osp.join(dir, fn)
 
 
-def substract(img_a, img_b, ranges):
-    """ 
+def recover_orgin_data(img, channel):
+    if channel == '0':
+        return img
+    log_root = math.log(0.0223, 10)
+    denom = (1 - log_root) * 0.75
+
+    bandNo = int(channel[1:])
+    if bandNo in range(1, 7):
+        img = img * denom / 255
+        img_temp = img.tolist()
+        for i in range(len(img_temp)):
+            img_temp[i] = np.power(10, img_temp[i])
+        img = np.array(img_temp)
+        img = (img + log_root) * 255
+    return img
+
+
+def substract(img_a, img_b, ranges, channels):
+    """
     return A - B with range (tuple)
     """
     maximum, minimum = ranges
+
     img_a.astype(np.uint32)
     img_b.astype(np.uint32)
+    img_a = recover_orgin_data(img_a, channels[0])
+    img_b = recover_orgin_data(img_b, channels[1])
     img = img_a - img_b
-    #映射到0-255
+    # 映射到0-255
     img = cv2.normalize(img, None, 0, 255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC3)
     return img
 
@@ -81,8 +104,8 @@ def input_pros():
 
 
 def single_pros(dt, channel_dic, gamma_dic, range_dic):
-    """ 
-        Input datetime, process input and return 
+    """
+        Input datetime, process input and return
     """
     channels = ['R', 'G', 'B']
     img_dic = {}
@@ -96,8 +119,7 @@ def single_pros(dt, channel_dic, gamma_dic, range_dic):
         img_b = np.zeros(img_a.shape)  # TODO: add dtype attribute
         if img_b_path != None:
             img_b = np.asarray(Image.open(img_b_path))
-
-        img_dic[ch] = substract(img_a, img_b, range_dic[ch])
+        img_dic[ch] = substract(img_a, img_b, range_dic[ch], channel_dic[ch])
 
     merged_img = img_merge(img_dic, gamma_dic)
     return merged_img

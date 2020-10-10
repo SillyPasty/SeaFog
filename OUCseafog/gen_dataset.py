@@ -3,10 +3,7 @@ import os
 from datetime import datetime
 import config as cfg
 from util import him
-
-
-
-
+from stastic import anal_ouc
 
 sample_mask1 = np.zeros((1041, 651), dtype=np.int)
 sample_mask2 = np.zeros((851, 1361), dtype=np.int)
@@ -76,26 +73,59 @@ def merge_dic(x, y):
         else:
             y[k] = v
     return y
-    
 
+def get_sample_B07_B13(ouc_fn, path_dic):
+    dt = get_dt(ouc_fn[-16:])
+    fd = him.get_file_dir(path_dic, dt)
+    ouc = get_OUC_file(ouc_fn)
+    dataset_list = []
+    rang = [7, 13]
+    for i in rang:
+        ch_img, flag = him.get_channel_img(dt, fd, i)
+        if not flag:
+            inv = 1
+            continue
+        ch_img = him.get_target_area(cfg.OUC.START_LON, cfg.OUC.END_LON, cfg.OUC.START_LAT, cfg.OUC.END_LAT, ch_img)
+        ch_img = sample(ch_img)
+        dataset_list.append(ch_img)
+    dataset_list.append(ouc)
+    return dataset_list
 def main(ouc_dir):
     # path_dic = him.get_path_dic(r'')
     res = {}
+    res1 = []
     for fn in os.listdir(ouc_dir):
         if fn[-4:] != '.dat':
             continue
+        print('\rProcessing ' + fn, end='')
         ouc_fn = os.path.join(ouc_dir, fn)
-        print('\rProcessing {}'.format(ouc_fn), end='')
-        result = stat_data(ouc_fn)
-        res = merge_dic(res, result)
-        break
+        ouc = np.fromfile(ouc_fn, dtype=np.float32)
+        keys = np.unique(ouc)
+        if 3. in keys:
+            res1.append(ouc_fn)
+        # result = stat_data(ouc_fn)
+        # res = merge_dic(res, result)
+        # break
     print()
-    print(res)
+    print(res1)
 
-path_dic = him.get_path_dic(r'数据\himexp')
-ouc_fn = r'数据\海大反演\参考夜间结果\2019\201903140000.dat'
-get_simple(ouc_fn, path_dic)
-# main(r'数据\海大反演\参考夜间结果\2020')
+
+def cal():
+    path_dic = him.get_path_dic(r'数据\himexp')
+    for i in range(13, 23):
+        fn = "20190419{:02}00.dat".format(i)
+        print('\rProcessing ' + fn, end='')
+        ouc_fn = os.path.join(r'数据\海大反演\参考夜间结果\2019', fn)
+        res = get_sample_B07_B13(ouc_fn, path_dic)
+        anal_ouc(r'OUCseafog\output', get_dt(ouc_fn[-16:]), ch13=res[1], ch7=res[0], ouc=res[2])
+
+cal()
+
+# path_dic = him.get_path_dic(r'数据\himexp')
+# ouc_fn = r'数据\海大反演\参考夜间结果\2019\201904132100.dat'
+# res = get_sample_B07_B13(ouc_fn, path_dic)
+# anal_ouc(r'OUCseafog\output', get_dt(ouc_fn[-16:]), ch13=res[1], ch7=res[0], ouc=res[2])
+# main(r'数据\海大反演\参考夜间结果\2019')
 
 # 0.0: 405584026, 1.0: 1288106302, 2.0: 670944089, 3.0: 16461881
 # 0.0: 148165206, 1.0: 621138112, 2.0: 257678007, 3.0: 16143758

@@ -33,7 +33,6 @@ def sample(img):
             tmp_idx += 1
     return sampled_img
 
-
 def get_simple(ouc_fn, path_dic):
     dt = get_dt(ouc_fn[-16:])
     fd = him.get_file_dir(path_dic, dt)

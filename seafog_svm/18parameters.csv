@@ -1,3 +1,0 @@
-lat1,lon1,lat2,lon2,day,night,sea,land,model_path,total_samples,f1 score,precision,recall,svm_c,svm_gamma,time,ttrain score
-41,117.5,34,127,1,0,1,0,,1868,0.9,0.85,0.95,10,0.5,34s,0.99
-41,117.5,34,127,0,1,1,0,,6636,0.88,0.9,0.84,10,25.6,742s,0.98

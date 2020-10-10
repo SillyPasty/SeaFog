@@ -5,15 +5,16 @@ import config as cfg
 from util import him
 
 
-
 def get_dt(fn):
     dt = datetime.strptime(fn[:-4], "%Y%m%d%H%M")
     return dt
+
 
 def get_OUC_file(fn):
     ouc = np.fromfile(fn, dtype=np.float32)
     ouc = ouc.reshape(cfg.OUC.SIZE[0], cfg.OUC.SIZE[1])
     return ouc
+
 
 def sample(img):
     """ 0 0.0125  0.025  0.0375  0.05  0.0625  0.075  0.0875  0.1
@@ -34,6 +35,27 @@ def sample(img):
     return sampled_img
 
 
+def get_sample_B07_B13(out_fn, path_dic):
+    dt = get_dt(ouc_fn[-16:])
+    fd = him.get_file_dir(path_dic, dt)
+    ouc = get_OUC_file(ouc_fn)
+    dataset_list = []
+    range = {3, 17}
+    for i in range:
+        ch_img, flag = him.get_channel_img(dt, fd, i)
+        if not flag:
+            inv = 1
+            continue
+        ch_img = him.get_target_area(cfg.OUC.START_LON, cfg.OUC.END_LON, cfg.OUC.START_LAT, cfg.OUC.END_LAT, ch_img)
+        ch_img = sample(ch_img)
+        dataset_list.append(ch_img)
+    dataset_list.append(ouc)
+    reslist = []
+    for img in dataset_list:
+        res = np.array(img)
+        reslist.append(res)
+    return reslist
+
 def get_simple(ouc_fn, path_dic):
     dt = get_dt(ouc_fn[-16:])
     fd = him.get_file_dir(path_dic, dt)
@@ -53,10 +75,12 @@ def get_simple(ouc_fn, path_dic):
     res = res.reshape(-1, 17)
     np.save('test', res)
 
+
 def stat_data(ouc_fn):
     ouc = np.fromfile(ouc_fn, dtype=np.float32)
     res = count_np(ouc)
     return res
+
 
 def count_np(arr):
     result = {}
@@ -66,6 +90,7 @@ def count_np(arr):
         result[k] = np.sum(mask)
     return result
 
+
 def merge_dic(x, y):
     for k, v in x.items():
         if k in y.keys():
@@ -73,7 +98,7 @@ def merge_dic(x, y):
         else:
             y[k] = v
     return y
-    
+
 
 def main(ouc_dir):
     # path_dic = him.get_path_dic(r'')
@@ -87,6 +112,7 @@ def main(ouc_dir):
         res = merge_dic(res, result)
     print()
     print(res)
+
 
 path_dic = him.get_path_dic(r'数据\himexp')
 ouc_fn = r'数据\海大反演\参考夜间结果\2019\201903140000.dat'
